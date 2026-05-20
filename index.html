@@ -1,0 +1,2160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>S&L Sales Scorecard</title>
+<!-- System font stack — matches monthly scorecard PDF -->
+<style>
+:root {
+  --ink: #1a1d26;
+  --ink-2: #2c303d;
+  --paper: #ffffff;
+  --paper-2: #f7f7f8;
+  --paper-3: #eef0f3;
+  --line: #e3e5ea;
+  --muted: #6b7280;
+  --muted-2: #9aa0ac;
+  --green: #16a34a;  --green-bg: #dcfce7;
+  --blue: #2563eb;   --blue-bg: #dbeafe;
+  --red: #dc2626;    --red-bg: #fee2e2;
+  --amber: #d97706;  --amber-bg: #fef3c7;
+  --gray: #6b7280;   --gray-bg: #f1f3f6;
+  --gold: #c9a73a;
+  --radius: 14px;
+  --radius-sm: 10px;
+  --tap: 56px;
+  --tap-lg: 64px;
+  --gutter: 16px;
+}
+
+/* Hide the whole app until a store is selected — picker shows on a clean dark background */
+body.no-shop .app { display: none !important; }
+body.no-shop {
+  background: var(--ink);
+}
+body.no-shop::before {
+  content: "";
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255,255,255,.04), transparent 60%),
+    var(--ink);
+  z-index: 0;
+}
+body.no-shop .scrim {
+  background: transparent;
+}
+
+body.no-shop .login-brand {
+  display: block !important;
+  background: var(--ink); color: #fff;
+  padding: 32px 26px 8px;
+  text-align: center;
+}
+.login-brand .lb-eyebrow {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.6rem; letter-spacing: 2.5px;
+  text-transform: uppercase; font-weight: 700;
+  color: var(--muted-2); margin-bottom: 8px;
+}
+.login-brand .lb-logo {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 2rem; letter-spacing: 4px;
+  color: #fff;
+}
+body.no-shop .sheet-title {
+  background: var(--ink); color: #fff;
+  padding: 0 26px 22px;
+  font-size: 0.85rem !important; letter-spacing: 2px !important;
+  text-transform: uppercase;
+  color: var(--muted-2) !important;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+body.no-shop .sheet-msg {
+  display: none;
+}
+body.no-shop .sheet-search { padding-top: 18px; }
+
+/* When showing as login screen (no shop yet), center the picker on dark background */
+body.no-shop .sheet {
+  position: fixed;
+  left: 50% !important;
+  top: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translate(-50%, -50%);
+  border-radius: var(--radius);
+  max-width: 440px;
+  width: calc(100% - 32px);
+  max-height: 80vh;
+  display: flex !important;
+  z-index: 500;
+  box-shadow: 0 24px 80px rgba(0,0,0,.6);
+  animation: scaleIn .25s ease-out;
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: translate(-50%, -48%) scale(.96); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+body.no-shop .sheet-handle { display: none; }
+body.no-shop .sheet-head {
+  background: var(--ink); color: #fff; padding: 28px 26px 22px;
+  text-align: center;
+}
+body.no-shop .sheet-title {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1.6rem; letter-spacing: 3px;
+  margin-top: 0;
+}
+body.no-shop .sheet-msg {
+  font-size: 0.7rem; letter-spacing: 1.5px;
+  text-transform: uppercase; font-weight: 600;
+  color: var(--muted-2);
+  padding: 12px 24px 0;
+}
+/* Hide scrim entirely in login mode — body background already dark */
+body.no-shop .scrim { display: none !important; }
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--paper-2); color: var(--ink);
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 15px; line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============ APP WRAPPER — mobile-first, scales to desktop ============ */
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--paper-2);
+  min-height: 100vh;
+  position: relative;
+}
+@media (min-width: 768px) {
+  body { padding: 24px 0; }
+  .app {
+    max-width: 720px;
+    box-shadow: 0 4px 24px rgba(26,29,38,.06);
+    border-radius: var(--radius);
+    overflow: hidden;
+    min-height: 0;
+  }
+}
+@media (min-width: 1024px) {
+  .app { max-width: 1180px; }
+}
+.app[data-view="monthly"] {
+  /* Monthly leaderboard wants more room on desktop */
+}
+
+/* ============ STICKY HEADER ============ */
+.app-header {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--ink); color: #fff;
+  padding: 14px var(--gutter);
+  display: flex; align-items: center; gap: 12px;
+}
+.menu-btn {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: rgba(255,255,255,.08); border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #fff; font-size: 18px;
+}
+.menu-btn:hover { background: rgba(255,255,255,.14); }
+.header-brand { flex: 1; line-height: 1.1; min-width: 0; }
+.header-brand .logo {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1.2rem; letter-spacing: 3px; color: #fff;
+}
+.header-brand .subtitle {
+  font-size: 0.56rem; letter-spacing: 2px; text-transform: uppercase;
+  color: rgba(255,255,255,.55); margin-top: 2px; font-weight: 600;
+}
+.header-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255,255,255,.12);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 700; font-size: 13px;
+  letter-spacing: 0.5px; cursor: pointer; flex: 0 0 auto;
+}
+
+/* ============ TABS ============ */
+.tabs {
+  display: flex; gap: 8px;
+  padding: 12px var(--gutter);
+  overflow-x: auto; overflow-y: hidden;
+  background: var(--paper-2);
+  border-bottom: 1px solid var(--line);
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex: 0 0 auto; padding: 10px 18px;
+  background: var(--paper);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.95rem; letter-spacing: 2px;
+  color: var(--muted); cursor: pointer; user-select: none;
+  white-space: nowrap;
+  min-height: 44px; display: inline-flex; align-items: center;
+}
+.tab:hover { color: var(--ink); }
+.tab.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+/* ============ DAILY PAGE ============ */
+.page { padding: var(--gutter); padding-bottom: 32px; }
+
+.store-banner {
+  background: var(--paper);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.store-banner .lbl {
+  font-size: 0.58rem; font-weight: 800; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--muted-2);
+}
+.store-banner .shop-name {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1.6rem; letter-spacing: 1.5px; color: var(--ink); margin-top: 2px;
+}
+.store-banner .tier-badge {
+  display: inline-block;
+  padding: 6px 10px; border-radius: 999px;
+  background: var(--gray-bg); color: var(--gray);
+  font-size: 0.58rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;
+  margin-top: 6px;
+}
+.store-banner .change-link {
+  font-size: 0.62rem; font-weight: 800; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--blue);
+  cursor: pointer; padding: 10px; border-radius: var(--radius-sm); flex: 0 0 auto;
+}
+.store-banner .change-link:hover { background: var(--blue-bg); }
+
+.filter-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.pill {
+  background: var(--paper);
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.78rem; font-weight: 600; color: var(--ink);
+  cursor: pointer; user-select: none;
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 38px;
+}
+.pill:hover { border-color: var(--ink); }
+.pill.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+.pill .pill-caret { font-size: 9px; opacity: 0.6; }
+.refreshed-line {
+  font-size: 0.65rem; color: var(--muted-2);
+  text-align: right; margin-bottom: 12px; letter-spacing: 0.4px;
+}
+
+/* Dropdown */
+.dd-wrap { position: relative; }
+.dd {
+  display: none; position: absolute; top: calc(100% + 6px); left: 0;
+  background: var(--paper);
+  border: 1.5px solid var(--line); border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(26,29,38,.08);
+  min-width: 220px; z-index: 60; padding: 6px 0;
+}
+.dd.open { display: block; }
+.dd-item {
+  padding: 12px 16px; font-size: 0.85rem; color: var(--ink); cursor: pointer; font-weight: 500;
+}
+.dd-item:hover { background: var(--paper-2); }
+.dd-item.active { font-weight: 700; background: var(--paper-2); }
+.dd-item.active::before { content: "● "; color: var(--ink); }
+.dd-divider { border-top: 1px solid var(--line); margin: 6px 0; }
+
+/* Calendar */
+.cal-wrap {
+  display: none; position: absolute; top: calc(100% + 6px); left: 0;
+  background: var(--paper);
+  border: 1.5px solid var(--line); border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(26,29,38,.08);
+  padding: 14px; z-index: 60;
+  width: calc(100vw - 32px); max-width: 560px;
+}
+.cal-wrap.open { display: block; }
+.cal-grid { display: grid; grid-template-columns: 1fr; gap: 18px; }
+@media (min-width: 560px) { .cal-grid { grid-template-columns: 1fr 1fr; gap: 24px; } }
+.cal-month .cal-head {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.95rem; letter-spacing: 1.5px;
+  text-align: center; margin-bottom: 10px;
+}
+.cal-dow, .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-dow div {
+  font-size: 0.6rem; color: var(--muted-2); text-align: center;
+  padding: 4px 0; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;
+}
+.cal-day {
+  font-size: 0.82rem; text-align: center; padding: 8px 0;
+  cursor: pointer; border-radius: 6px; color: var(--ink);
+}
+.cal-day:hover { background: var(--paper-2); }
+.cal-day.muted { color: transparent; cursor: default; }
+.cal-day.in-range { background: var(--paper-3); }
+.cal-day.endpoint { background: var(--ink); color: #fff; font-weight: 700; }
+.cal-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.cal-nav button {
+  background: var(--paper-2); border: 1.5px solid var(--line);
+  padding: 6px 12px; cursor: pointer; font-size: 0.85rem; border-radius: 8px;
+}
+.cal-footer { margin-top: 14px; display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.cal-footer button {
+  flex: 1; padding: 12px;
+  background: var(--paper-2); border: 1.5px solid var(--line);
+  cursor: pointer; font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.95rem; letter-spacing: 2px;
+  border-radius: var(--radius-sm); color: var(--ink);
+}
+.cal-footer button.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+/* Period card */
+.period-card {
+  background: var(--paper); border: 1.5px solid var(--line);
+  border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px;
+}
+.period-card .period-line {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 0.78rem; color: var(--muted);
+}
+.period-card .period-line strong { color: var(--ink); font-weight: 700; }
+.progress-track {
+  margin-top: 10px; height: 4px; background: var(--paper-3);
+  border-radius: 2px; overflow: hidden;
+}
+.progress-fill { height: 100%; background: var(--ink); width: 0%; transition: width .8s cubic-bezier(.2,.7,.2,1); }
+
+/* Metric cards */
+.metric-stack { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 12px; }
+@media (min-width: 600px) { .metric-stack { grid-template-columns: 1fr 1fr; } }
+.metric-card {
+  background: var(--paper);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  transition: border-color .2s;
+}
+.metric-card.focus { border-color: var(--blue); border-width: 2px; padding: 15px 17px; }
+.metric-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 12px; gap: 8px;
+}
+.metric-name {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1.05rem; letter-spacing: 1.5px; color: var(--ink);
+}
+.metric-weight {
+  font-size: 0.55rem; font-weight: 800; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--muted-2);
+}
+.metric-value {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 800;
+  font-size: 2.2rem; letter-spacing: -0.3px;
+  color: var(--ink); line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+}
+.metric-delta { font-size: 0.72rem; font-weight: 600; color: var(--muted); margin-top: 6px; }
+.metric-delta.up { color: var(--green); }
+.metric-delta.dn { color: var(--red); }
+.metric-delta .arrow { font-weight: 800; margin-right: 3px; }
+.metric-best {
+  margin-top: 14px; padding-top: 12px;
+  border-top: 1px solid var(--line);
+  display: flex; align-items: baseline; justify-content: space-between;
+  flex-wrap: wrap; gap: 4px;
+}
+.metric-best .lbl {
+  font-size: 0.55rem; font-weight: 800; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--muted);
+}
+.metric-best .val {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1.1rem; letter-spacing: 0.5px; color: var(--ink);
+}
+.metric-best .shop {
+  font-size: 0.7rem; color: var(--muted-2);
+  font-style: italic; flex-basis: 100%; margin-top: 2px;
+}
+
+/* Total Score */
+.total-card {
+  background: var(--ink); color: #fff;
+  border-radius: var(--radius); padding: 20px 18px; margin-bottom: 12px;
+}
+.total-row1 {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 6px; flex-wrap: wrap; gap: 8px;
+}
+.total-label {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.95rem; letter-spacing: 2px; color: rgba(255,255,255,.7);
+}
+.total-rank {
+  font-size: 0.62rem; font-weight: 800; letter-spacing: 1.2px;
+  text-transform: uppercase; color: rgba(255,255,255,.6);
+}
+.total-rank strong { color: #fff; }
+.total-value {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 800;
+  font-size: 3.4rem; letter-spacing: -0.5px;
+  line-height: 0.95; font-variant-numeric: tabular-nums;
+}
+.total-delta {
+  display: inline-block; margin-top: 8px;
+  padding: 5px 12px; border-radius: 999px;
+  background: rgba(255,255,255,.12);
+  font-size: 0.7rem; font-weight: 700;
+}
+.total-goal {
+  margin-top: 10px; font-size: 0.65rem; letter-spacing: 1px;
+  text-transform: uppercase; color: rgba(255,255,255,.5); font-weight: 700;
+}
+.total-leader { margin-top: 4px; font-size: 0.72rem; color: rgba(255,255,255,.7); font-style: italic; }
+
+/* Focus block */
+.focus-card {
+  background: var(--paper);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px; margin-bottom: 12px;
+  display: flex; gap: 12px;
+}
+.focus-icon { font-size: 20px; color: var(--gold); line-height: 1; flex: 0 0 auto; }
+.focus-body { flex: 1; min-width: 0; }
+.focus-label {
+  font-size: 0.6rem; font-weight: 800; letter-spacing: 1.4px;
+  text-transform: uppercase; color: var(--ink); margin-bottom: 4px;
+}
+.focus-headline {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1.1rem; letter-spacing: 1px; color: var(--ink);
+  margin-bottom: 6px; line-height: 1.2;
+}
+.focus-action { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+.focus-action strong { color: var(--ink); font-weight: 700; }
+
+/* Empty/loading states */
+.state {
+  padding: 50px 24px; text-align: center;
+  background: var(--paper); border: 1.5px solid var(--line);
+  border-radius: var(--radius); margin-bottom: 12px;
+}
+.state .big {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1.3rem; letter-spacing: 1.5px;
+  color: var(--ink); margin-bottom: 6px;
+}
+.state .small { font-size: 0.82rem; color: var(--muted); }
+
+.method-foot {
+  font-size: 0.62rem; color: var(--muted-2);
+  text-align: center; padding: 14px 16px;
+  letter-spacing: 0.3px; line-height: 1.5;
+}
+.method-foot strong { color: var(--muted); font-weight: 700; }
+.rate-note { color: var(--muted-2); }
+
+/* ============ MONTHLY VIEW ============ */
+.monthly-page { padding: var(--gutter); padding-bottom: 32px; }
+
+.monthly-title {
+  background: var(--ink); color: #fff;
+  padding: 22px 20px; text-align: center;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.monthly-title h1 {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1.5rem; letter-spacing: 2.5px; margin: 0;
+}
+@media (min-width: 600px) { .monthly-title h1 { font-size: 1.8rem; letter-spacing: 3px; } }
+.monthly-title .subtitle {
+  font-size: 0.72rem; color: rgba(255,255,255,.7);
+  margin-top: 6px; font-style: italic;
+}
+
+.monthly-shell {
+  background: var(--paper);
+  border: 1.5px solid var(--line);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+  overflow: hidden;
+}
+
+.month-selector-row {
+  padding: 16px var(--gutter);
+  display: flex; flex-direction: column; gap: 8px;
+  border-bottom: 1px solid var(--line);
+}
+@media (min-width: 600px) {
+  .month-selector-row { flex-direction: row; align-items: center; gap: 12px; }
+}
+.month-selector-row .hint {
+  font-size: 0.72rem; color: var(--muted); font-style: italic;
+}
+
+.howto-section, .leaders-section {
+  margin: 16px var(--gutter);
+  padding: 16px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius);
+}
+.howto-section { background: var(--paper-2); }
+.leaders-section { background: var(--paper); }
+.howto-section h2, .leaders-section h2 {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  margin: 0 0 6px 0; color: var(--ink);
+  font-size: 1.05rem; letter-spacing: 1.5px;
+}
+.leaders-section h2 .gold-star { color: var(--gold); }
+.howto-intro, .leaders-intro {
+  font-size: 0.78rem; color: var(--muted); margin-bottom: 14px; line-height: 1.5;
+}
+.howto-intro strong { color: var(--ink); }
+
+.howto-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 600px) { .howto-grid { grid-template-columns: 1fr 1fr; } }
+.howto-card {
+  background: var(--paper); padding: 11px 14px;
+  border: 1px solid var(--line); border-radius: 8px;
+}
+.howto-card .row1 { display: flex; align-items: baseline; gap: 10px; margin-bottom: 5px; }
+.howto-card .name {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1rem; letter-spacing: 1px; color: var(--ink);
+}
+.howto-card .weight {
+  font-size: 0.58rem; font-weight: 800; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--muted-2);
+}
+.howto-card .def { font-size: 0.76rem; color: var(--muted); line-height: 1.4; }
+
+.leaders-subhead {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.9rem; letter-spacing: 1.5px;
+  color: var(--ink);
+  margin: 14px 0 8px 0;
+  border-bottom: 1px solid var(--line); padding-bottom: 4px;
+}
+.leaders-subhead-note {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; font-weight: 500;
+  color: var(--muted-2); text-transform: none;
+  letter-spacing: 0; font-style: italic; font-size: 0.72rem;
+}
+.leaders-grid { display: grid; gap: 10px; grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 600px) {
+  .leaders-grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .leaders-grid-5 { grid-template-columns: repeat(5, 1fr); }
+}
+.leader-card {
+  background: var(--paper-2); padding: 12px 10px;
+  border: 1px solid var(--line); border-radius: 8px; text-align: center;
+}
+.leader-card .lc-metric {
+  font-size: 0.6rem; font-weight: 800; color: var(--ink);
+  text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 5px;
+}
+.leader-card .lc-value {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1.5rem; letter-spacing: 1px; color: var(--ink);
+  line-height: 1.1; font-variant-numeric: tabular-nums;
+}
+.leader-card .lc-shop { font-size: 0.72rem; color: var(--muted); font-style: italic; margin-top: 4px; }
+
+/* Tier section — responsive: cards on mobile, table on desktop */
+.tier-section { margin: 18px var(--gutter); }
+.tier-header {
+  background: var(--ink); color: #fff;
+  padding: 12px 14px;
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1rem; letter-spacing: 1.5px;
+  border-radius: var(--radius) var(--radius) 0 0;
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+}
+.tier-header .tier-bests {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.62rem; font-weight: 600; color: rgba(255,255,255,.7);
+  letter-spacing: 0.3px; text-align: right;
+}
+
+/* Mobile shop cards */
+.tier-shop-list {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 12px; background: var(--paper-2);
+  border: 1.5px solid var(--line); border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+.shop-card {
+  background: var(--paper);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+}
+.shop-card.winner { background: var(--green-bg); border-color: var(--green); }
+.shop-card.you { box-shadow: inset 4px 0 0 var(--gold); }
+.shop-card .sc-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-bottom: 10px;
+}
+.shop-card .sc-rank {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1rem; letter-spacing: 1px;
+  background: var(--paper-2); color: var(--ink);
+  padding: 3px 9px; border-radius: 6px; min-width: 36px; text-align: center;
+}
+.shop-card.winner .sc-rank { background: #fff; color: var(--green); }
+.shop-card .sc-name {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1.05rem; letter-spacing: 1px; color: var(--ink);
+  flex: 1; min-width: 0;
+}
+.shop-card .sc-you-tag {
+  font-size: 0.55rem; font-weight: 800; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--gold);
+  padding: 3px 7px; border: 1px solid var(--gold); border-radius: 4px;
+}
+.shop-card .sc-star { color: var(--gold); font-size: 16px; }
+.shop-card .sc-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 6px 0; border-top: 1px solid var(--line);
+  font-size: 0.78rem;
+}
+.shop-card .sc-row:first-of-type { border-top: none; padding-top: 0; }
+.shop-card .sc-row .k { color: var(--muted); font-weight: 600; }
+.shop-card .sc-row .v {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.95rem; letter-spacing: 0.5px;
+  color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.shop-card .sc-row.total { background: var(--paper-2); margin: 6px -14px 0; padding: 8px 14px; border-top: 2px solid var(--ink); }
+.shop-card.winner .sc-row.total { background: rgba(255,255,255,.5); border-top-color: var(--green); }
+.shop-card .sc-row.total .k { font-weight: 800; color: var(--ink); letter-spacing: 1px; text-transform: uppercase; font-size: 0.65rem; }
+.shop-card .sc-row.total .v { font-size: 1.3rem; }
+
+/* Desktop table — visible only on >= 768px */
+.tier-table-wrap { display: none; }
+@media (min-width: 768px) {
+  .tier-table-wrap {
+    display: block;
+    background: var(--paper);
+    border: 1.5px solid var(--line); border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    overflow: hidden;
+  }
+  .tier-shop-list { display: none; }
+  .tier-header .tier-bests { display: none; } /* the table headers handle this */
+}
+table.scorecard {
+  width: 100%; border-collapse: collapse;
+  font-size: 0.78rem; table-layout: fixed;
+}
+table.scorecard th {
+  background: var(--ink-2); color: #fff;
+  padding: 10px 6px; text-align: center;
+  font-weight: 700; border: 1px solid var(--ink);
+  font-size: 0.72rem; line-height: 1.25; vertical-align: middle; white-space: nowrap;
+}
+table.scorecard th .best-tag, table.scorecard th .goal-tag {
+  display: block; font-size: 0.58rem; font-weight: 600;
+  color: #e6c860; margin-top: 3px;
+  letter-spacing: 0.3px; font-style: italic;
+}
+table.scorecard td {
+  padding: 9px 5px; text-align: center;
+  border: 1px solid var(--line);
+  font-size: 0.78rem; background: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+table.scorecard tbody tr:nth-child(even) td { background: var(--paper-2); }
+table.scorecard tbody tr.winner-row td { background: var(--green-bg) !important; font-weight: 700; }
+table.scorecard tbody tr.you-row td { box-shadow: inset 3px 0 0 var(--gold); }
+.col-rank { width: 42px; }
+.col-star { width: 32px; }
+.col-shop {
+  text-align: left !important; padding-left: 10px !important;
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.95rem; letter-spacing: 0.5px;
+}
+.col-netsales { width: 88px; }
+.col-total-header {
+  background: var(--ink) !important; color: #fff !important;
+  border-left: 2px solid var(--ink) !important; border-right: 2px solid var(--ink) !important;
+  padding: 11px 8px !important; width: 110px;
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 0.85rem !important; letter-spacing: 1px; white-space: nowrap;
+}
+.col-total {
+  background: var(--paper-2) !important;
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1.1rem !important; letter-spacing: 0.5px;
+  color: var(--ink);
+  border-left: 2px solid var(--ink) !important; border-right: 2px solid var(--ink) !important;
+}
+.col-metric { width: 118px; }
+.winner-row td.col-total { background: #d4e6da !important; }
+.star { color: var(--gold); font-weight: 700; font-size: 16px; }
+
+.legend {
+  font-size: 0.65rem; color: var(--muted);
+  margin: 16px var(--gutter); padding: 14px;
+  background: var(--paper-2);
+  border-left: 3px solid var(--ink);
+  border-radius: var(--radius-sm); line-height: 1.55;
+}
+.legend strong { color: var(--ink); }
+
+/* ============ SHOP PICKER (modal sheet on mobile, centered on desktop) ============ */
+.scrim {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(26,29,38,.55);
+  display: none; animation: fadeIn .2s ease;
+}
+.scrim.open { display: block; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 450;
+  max-width: 480px; margin: 0 auto;
+  background: var(--paper);
+  border-radius: 24px 24px 0 0;
+  max-height: 85vh;
+  display: none; flex-direction: column;
+  animation: slideUp .25s ease-out;
+}
+.sheet.open { display: flex; }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@media (min-width: 768px) {
+  .sheet {
+    left: 50%; right: auto; bottom: auto; top: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: var(--radius);
+    width: 440px; max-height: 70vh;
+    animation: scaleIn .2s ease-out;
+  }
+  .sheet.open { display: flex; }
+  @keyframes scaleIn {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(.95); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+  .sheet-handle { display: none; }
+}
+.sheet-handle { width: 44px; height: 4px; background: var(--paper-3); border-radius: 999px; margin: 10px auto 6px; }
+.sheet-title {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1.4rem; letter-spacing: 2.5px;
+  text-align: center; color: var(--ink); padding: 8px 20px;
+}
+.sheet-msg { font-size: 0.78rem; color: var(--muted); text-align: center; padding: 0 24px 12px; }
+.sheet-search { padding: 0 20px 14px; }
+.sheet-search input {
+  width: 100%; height: 52px;
+  border: 1.5px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--paper-2); color: var(--ink);
+  padding: 0 14px; font-size: 15px; font-family: inherit;
+  outline: none; transition: border-color .15s, box-shadow .15s;
+}
+.sheet-search input:focus {
+  border-color: var(--ink); background: var(--paper);
+  box-shadow: 0 0 0 4px rgba(26,29,38,.06);
+}
+.sheet-list { overflow-y: auto; flex: 1; padding: 0 20px 12px; }
+.sheet-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 12px; cursor: pointer;
+  border-bottom: 1px solid var(--line); min-height: var(--tap);
+}
+.sheet-item:hover { background: var(--paper-2); }
+.sheet-item:last-child { border-bottom: none; }
+.sheet-item .shop-name {
+  font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 1.05rem; letter-spacing: 1px; color: var(--ink);
+}
+.sheet-item .tier {
+  font-size: 0.58rem; font-weight: 800; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--muted);
+  padding: 6px 10px; background: var(--gray-bg); border-radius: 999px;
+}
+.sheet-empty { padding: 30px 20px; text-align: center; color: var(--muted); font-size: 0.85rem; }
+.sheet-foot {
+  padding: 14px 20px; border-top: 1px solid var(--line);
+  font-size: 0.7rem; color: var(--muted-2); text-align: center; letter-spacing: 0.5px;
+}
+.sheet-foot .star { color: var(--gold); }
+</style>
+</head>
+<body class="no-shop">
+
+<!-- SHOP PICKER -->
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true">
+  <div class="sheet-handle"></div>
+  <div class="login-brand" style="display:none">
+    <div class="lb-eyebrow">State &amp; Liberty</div>
+    <div class="lb-logo">SALES SCORECARD</div>
+  </div>
+  <div class="sheet-title">Select your store</div>
+  <div class="sheet-msg">Your choice is remembered on this device</div>
+  <div class="sheet-search">
+    <input type="text" id="pickerSearch" placeholder="Search stores…" autocomplete="off" />
+  </div>
+  <div class="sheet-list" id="pickerList">
+    <div class="sheet-empty">Loading stores…</div>
+  </div>
+  <div class="sheet-foot"><span class="star">★</span> 44 State &amp; Liberty locations</div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app" data-view="daily">
+
+  <header class="app-header">
+    <button class="menu-btn" id="changeStore2" aria-label="Change store">☰</button>
+    <div class="header-brand">
+      <div class="logo">STATE &amp; LIBERTY</div>
+      <div class="subtitle">Sales Scorecard</div>
+    </div>
+    <div class="header-avatar" id="headerAvatar" title="Change store">—</div>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-view="daily">Daily</div>
+    <div class="tab" data-view="monthly">Monthly Leaderboard</div>
+  </div>
+
+  <!-- DAILY PAGE -->
+  <div class="page" id="dailyPage">
+
+    <div class="store-banner">
+      <div style="min-width:0">
+        <div class="lbl">Store</div>
+        <div class="shop-name" id="bannerShop">—</div>
+        <span class="tier-badge" id="bannerTier" style="display:none">—</span>
+      </div>
+      <div class="change-link" id="changeStore">Change</div>
+    </div>
+
+    <div class="filter-row">
+      <div class="dd-wrap">
+        <span class="pill active" data-dd="preset"><span id="pillPreset">Month-to-Date</span> <span class="pill-caret">▾</span></span>
+        <div class="dd" id="ddPreset">
+          <div class="dd-item" data-preset="today">Today</div>
+          <div class="dd-item" data-preset="yesterday">Yesterday</div>
+          <div class="dd-item" data-preset="last7">Last 7 days</div>
+          <div class="dd-item" data-preset="last30">Last 30 days</div>
+          <div class="dd-item active" data-preset="mtd">Month-to-Date</div>
+          <div class="dd-item" data-preset="lastmonth">Last Month</div>
+          <div class="dd-divider"></div>
+          <div class="dd-item" data-preset="custom">Custom range…</div>
+        </div>
+      </div>
+      <div class="dd-wrap">
+        <span class="pill" data-dd="cal"><span id="pillRange">—</span> <span class="pill-caret">▾</span></span>
+        <div class="cal-wrap" id="calWrap">
+          <div class="cal-grid">
+            <div class="cal-month">
+              <div class="cal-nav"><button id="calPrev">‹</button><span class="cal-head" id="calHead1">—</span><span></span></div>
+              <div class="cal-dow"><div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div></div>
+              <div class="cal-days" id="calDays1"></div>
+            </div>
+            <div class="cal-month">
+              <div class="cal-nav"><span></span><span class="cal-head" id="calHead2">—</span><button id="calNext">›</button></div>
+              <div class="cal-dow"><div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div></div>
+              <div class="cal-days" id="calDays2"></div>
+            </div>
+          </div>
+          <div class="cal-footer">
+            <button id="calCancel">Cancel</button>
+            <button id="calApply" class="primary">Apply</button>
+          </div>
+        </div>
+      </div>
+      <div class="dd-wrap">
+        <span class="pill" data-dd="compare"><span id="pillCompare">Compare</span> <span class="pill-caret">▾</span></span>
+        <div class="dd" id="ddCompare">
+          <div class="dd-item active" data-compare="on">Comparison to past</div>
+          <div class="dd-item" data-compare="off">No comparison</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="refreshed-line">Last refreshed: <span id="refreshedAt">—</span></div>
+
+    <div id="bodyHost">
+      <div class="state"><div class="big">Loading…</div><div class="small">Fetching the latest data.</div></div>
+    </div>
+
+    <div class="method-foot">
+      <strong>Scoring</strong> · weighted grade vs tier best, capped at 100. Weights: Suit Comp 25% · Shirt-to-Suit 25% · Accessory-to-Suit 15% · AOV 35%.
+      <div class="rate-note" id="rateNote" style="margin-top:4px;"></div>
+    </div>
+  </div>
+
+  <!-- MONTHLY PAGE -->
+  <div class="monthly-page" id="monthlyPage" style="display:none">
+
+    <div class="monthly-title">
+      <h1>SALES SCORECARD</h1>
+      <div class="subtitle" id="monthlySubtitle">—</div>
+    </div>
+
+    <div class="monthly-shell">
+
+      <div class="month-selector-row">
+        <div class="dd-wrap">
+          <span class="pill active" data-dd="month"><span id="pillMonth">—</span> <span class="pill-caret">▾</span></span>
+          <div class="dd" id="ddMonth"></div>
+        </div>
+        <span class="hint">Full month · all 44 shops · ranked by tier</span>
+      </div>
+
+      <div class="howto-section">
+        <h2>How to read this</h2>
+        <div class="howto-intro">
+          Every shop is graded on 4 metrics. Tier best is the bar to beat. Total Score is your overall rank inside your tier — goal is 100%. <strong>#1 in each tier wins.</strong>
+        </div>
+        <div class="howto-grid">
+          <div class="howto-card">
+            <div class="row1"><span class="name">Suit Completion</span><span class="weight">25% weight</span></div>
+            <div class="def">% of suit-piece buyers who leave with the complete blazer + pant pair.</div>
+          </div>
+          <div class="howto-card">
+            <div class="row1"><span class="name">Shirt-to-Suit</span><span class="weight">25% weight</span></div>
+            <div class="def">% of blazer buyers who also leave with a dress shirt.</div>
+          </div>
+          <div class="howto-card">
+            <div class="row1"><span class="name">Accessory-to-Suit</span><span class="weight">15% weight</span></div>
+            <div class="def">% of blazer buyers who also leave with an accessory.</div>
+          </div>
+          <div class="howto-card">
+            <div class="row1"><span class="name">AOV</span><span class="weight">35% weight</span></div>
+            <div class="def">Average dollars sold per transaction.</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="monthlyLeadersHost"></div>
+      <div id="monthlyTablesHost"></div>
+
+      <div class="legend">
+        <strong>Methodology</strong> · in-store invoices only, Shopify POS, US + Canada combined. Canadian shops (Toronto, Oakville) converted at live ECB/BoC rate. Score = weighted sum capped at 100. Excluded: Tailoring, Wedding, Backorder, Sample Sale, Swatch, RUSH FEE, Sample Product POS, bare Ann Arbor (warehouse), West Hollywood POS.
+        <div class="rate-note" id="rateNoteMonthly" style="margin-top:6px;"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ============== CONFIG ============== */
+const CONFIG = {
+  DATA_CSV_URL:   "https://docs.google.com/spreadsheets/d/e/2PACX-1vRfGYAjMDsScyubOrpIOXsISQ-OGIqV1cBOuocxzksAw_IWS-jCL-RtQHuaGQ2ZJMKB0tOszwuysf1v/pub?gid=0&single=true&output=csv",
+  LOOKUP_CSV_URL: "",
+  FALLBACK_CAD_USD: 0.7345,
+  FX_ENDPOINTS: [
+    "https://api.frankfurter.app/latest?from=CAD&to=USD",
+    "https://open.er-api.com/v6/latest/CAD",
+    "https://api.exchangerate-api.com/v4/latest/CAD"
+  ],
+  REFRESH_MS: 15 * 60 * 1000,
+  ACTIVE_START_HOUR_ET: 6,
+  ACTIVE_END_HOUR_ET: 10,
+  EXCLUDED_LOCATIONS: new Set(["Sample Product POS","Ann Arbor","West Hollywood POS","#N/A","Lexington POS"]),
+  EXCLUDED_PRODUCT_TYPES: new Set(["Tailoring Tile","Wedding","Backorder","Sample Sale","Swatch","RUSH FEE",""]),
+  CAD_SHOPS: new Set(["Toronto, ON","Oakville, ON"]),
+  BUCKETS: {
+    blazer:    new Set(["Suit"]),
+    pant:      new Set(["Pants","Dress Pants"]),
+    shirt:     new Set(["Shirt","Classic Fit"]),
+    accessory: new Set(["Ties","Belt","Pocket Square","Accessory","Shoes","Socks"])
+  },
+  WEIGHTS: { suit_completion: 0.25, shirt_to_suit: 0.25, accessory_to_suit: 0.15, aov: 0.35 },
+  STORAGE_KEY: "sl_selected_shop",
+  FX_STORAGE_KEY: "sl_cad_usd_rate",
+  FX_CACHE_TTL_MS: 6 * 60 * 60 * 1000,
+  // Minimum invoices required for a shop to be included in tier ranking
+  // (matches canonical April spec — Lexington POS with 2 invoices is excluded by this rule)
+  MIN_INVOICES_FOR_TIER: 50,
+  // Historical CAD→USD rate locked at the canonical April 2026 value (Bank of Canada, May 4, 2026)
+  // Applied to any date range that ends BEFORE the current calendar month.
+  // For current-month / live ranges, the live FX rate from the API is used instead.
+  HISTORICAL_CAD_USD: 0.7345,
+  TIER_NAMES: {
+    1: "TIER 1 · $280K+",
+    2: "TIER 2 · $180K–$280K",
+    3: "TIER 3 · $145K–$180K",
+    4: "TIER 4 · $115K–$145K",
+    5: "TIER 5 · Under $115K"
+  }
+};
+
+const FALLBACK_TIER_MAP = {
+  "Boston, MA":1, "Cherry Creek, Denver, CO":1, "Dedham, MA":1, "Chicago, IL":1,
+  "Fort Lauderdale, FL":1, "Birmingham, MI":1, "Scottsdale, AZ":1, "Dallas, TX":1, "Washington, D.C.":1,
+  "Kansas City, MO":2, "Salt Lake City, UT":2, "Philadelphia, PA":2, "Houston, TX":2,
+  "SoHo, NYC":2, "Tampa, FL":2, "Newport Beach, CA":2,
+  "The Mall at Greenhills, Nashville, TN":2, "Flatiron, NYC":2, "Charleston, SC":2,
+  "Westport, CT":3, "La Jolla, CA":3, "Ann Arbor, MI":3, "Indianapolis, IN":3,
+  "Alexandria, VA":3, "Walnut Creek, CA":3, "Broadway Place, Nashville, TN":3, "Miami, FL":3,
+  "Lynnfield, MA":4, "Cincinnati, OH":4, "Bellevue, WA":4, "Pittsburgh, PA":4,
+  "Columbus, OH":4, "Century City, CA":4, "Cleveland, OH":4, "Edina, MN":4, "Greenville, SC":4,
+  "Oakville, ON":5, "Milwaukee, WI":5, "Greenwich, CT":5, "Basecamp, Denver, CO":5,
+  "Toronto, ON":5, "Manhattan Beach, CA":5, "Roseville, CA":5, "Omaha POS":5
+};
+
+/* Map raw POS names (from column J) to canonical tier-map names.
+   Your CSV uses POS-suffix naming ("Boston POS"); the tier map uses
+   the city/state convention ("Boston, MA"). This translation keeps
+   them aligned so tier-best benchmarks and Total Score work. */
+const POS_NAME_MAP = {
+  "Boston POS": "Boston, MA",
+  "Dedham POS": "Dedham, MA",
+  "Chicago POS": "Chicago, IL",
+  "Fort Lauderdale POS": "Fort Lauderdale, FL",
+  "Birmingham POS": "Birmingham, MI",
+  "Scottsdale POS": "Scottsdale, AZ",
+  "Dallas POS": "Dallas, TX",
+  "DC POS": "Washington, D.C.",
+  "Denver POS": "Cherry Creek, Denver, CO",
+  "Kansas City POS": "Kansas City, MO",
+  "Salt Lake City POS": "Salt Lake City, UT",
+  "Philadelphia POS": "Philadelphia, PA",
+  "Houston POS": "Houston, TX",
+  "New York POS": "SoHo, NYC",
+  "Flatiron POS": "Flatiron, NYC",
+  "Tampa POS": "Tampa, FL",
+  "Newport Beach POS": "Newport Beach, CA",
+  "Greenhills POS": "The Mall at Greenhills, Nashville, TN",
+  "Nashville POS": "Broadway Place, Nashville, TN",
+  "Charleston POS": "Charleston, SC",
+  "Westport POS": "Westport, CT",
+  "La Jolla POS": "La Jolla, CA",
+  "Ann Arbor POS": "Ann Arbor, MI",
+  "Indianapolis POS": "Indianapolis, IN",
+  "Alexandria POS": "Alexandria, VA",
+  "Walnut Creek POS": "Walnut Creek, CA",
+  "Miami POS": "Miami, FL",
+  "Lynnfield POS": "Lynnfield, MA",
+  "Cincinnati POS": "Cincinnati, OH",
+  "Bellevue POS": "Bellevue, WA",
+  "Pittsburgh POS": "Pittsburgh, PA",
+  "Columbus POS": "Columbus, OH",
+  "Century City POS": "Century City, CA",
+  "Cleveland POS": "Cleveland, OH",
+  "Minneapolis POS": "Edina, MN",
+  "Greenville POS": "Greenville, SC",
+  "Oakville StateandLiberty": "Oakville, ON",
+  "Milwaukee POS": "Milwaukee, WI",
+  "Greenwich POS": "Greenwich, CT",
+  "Basecamp POS": "Basecamp, Denver, CO",
+  "Toronto State and Liberty": "Toronto, ON",
+  "Manhattan Beach POS": "Manhattan Beach, CA",
+  "Roseville POS": "Roseville, CA",
+  "Omaha POS": "Omaha POS"
+  // Excluded automatically: "#N/A", "Lexington POS" (not in tier map)
+};
+function canonicalShop(raw) {
+  if (!raw) return raw;
+  const trimmed = String(raw).trim();
+  return POS_NAME_MAP[trimmed] || trimmed;
+}
+
+const STATE = {
+  invoices: [], shops: [],
+  tierMap: { ...FALLBACK_TIER_MAP },
+  currentShop: null,
+  preset: "mtd", compare: "on",
+  customStart: null, customEnd: null,
+  cadUsd: CONFIG.FALLBACK_CAD_USD,
+  fxSource: "fallback", fxDate: null,
+  colMap: null,
+  view: "daily",
+  monthlyMonth: null,
+  dataLoaded: false   // true only after loadData() successfully parses the CSV
+};
+
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const escapeHtml = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function parseCSV(text) {
+  const rows = []; let cur='', row=[], inQ=false;
+  for (let i=0;i<text.length;i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c==='"' && text[i+1]==='"') { cur+='"'; i++; }
+      else if (c==='"') inQ=false;
+      else cur+=c;
+    } else {
+      if (c==='"') inQ=true;
+      else if (c===',') { row.push(cur); cur=''; }
+      else if (c==='\n') { row.push(cur); rows.push(row); row=[]; cur=''; }
+      else if (c==='\r') {}
+      else cur+=c;
+    }
+  }
+  if (cur.length||row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(v => String(v).trim() !== ''));
+}
+function parseNumber(v) {
+  if (v==null) return NaN;
+  const s = String(v).trim().replace(/[$,\s]/g,'');
+  if (s===''||s==='-'||s.toLowerCase()==='n/a') return NaN;
+  if (/^\(.*\)$/.test(s)) { const n=parseFloat(s.slice(1,-1)); return isNaN(n)?NaN:-n; }
+  const n=parseFloat(s); return isNaN(n)?NaN:n;
+}
+function fmtMoney(n) { return (n==null||isNaN(n))?'—':'$'+Math.round(n).toLocaleString('en-US'); }
+function fmtPct(n) { return (n==null||isNaN(n))?'—':Math.round(n)+'%'; }
+function fmtPctOne(n) { return (n==null||isNaN(n))?'—':n.toFixed(0)+'%'; }
+
+function nowET() {
+  const fmt = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', hour12:false, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  const p = fmt.formatToParts(new Date()).reduce((a,x)=>{a[x.type]=x.value;return a;},{});
+  return { year:+p.year, month:+p.month, day:+p.day, hour:+p.hour===24?0:+p.hour, minute:+p.minute, second:+p.second };
+}
+function todayET() { const t=nowET(); return new Date(t.year, t.month-1, t.day); }
+function addDays(d,n) { const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function ymd(d) { const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), da=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${da}`; }
+function parseDateCell(raw) {
+  if (!raw) return null;
+  const s = String(raw).trim(); if (!s) return null;
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3]);
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if (m) { let yr=+m[3]; if (yr<100) yr+=2000; return new Date(yr,+m[1]-1,+m[2]); }
+  const d=new Date(s);
+  return isNaN(d.getTime())?null:new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function fmtDateRange(start, end) {
+  if (!start||!end) return '—';
+  const opts={month:'short',day:'numeric'}; const yo={...opts,year:'numeric'};
+  if (+start===+end) return start.toLocaleDateString('en-US', yo);
+  const sy=start.getFullYear()===end.getFullYear();
+  return (sy?start.toLocaleDateString('en-US',opts):start.toLocaleDateString('en-US',yo))+' – '+end.toLocaleDateString('en-US',yo);
+}
+function isInActiveWindow() { const t=nowET(); return t.hour>=CONFIG.ACTIVE_START_HOUR_ET && t.hour<CONFIG.ACTIVE_END_HOUR_ET; }
+
+/* Returns the FX rate to use for a given date range.
+   - Current month / future: live rate from API (more accurate for ongoing daily dashboards)
+   - Any range ending before this month started: HISTORICAL_CAD_USD (0.7345)
+   - This makes historical reconciliation reproducible (e.g., April 2026 numbers always match) */
+function effectiveFxRate(end) {
+  if (!end) return STATE.cadUsd;
+  const today = todayET();
+  const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  if (+end < +currentMonthStart) {
+    return CONFIG.HISTORICAL_CAD_USD;
+  }
+  return STATE.cadUsd;
+}
+
+/* FX */
+async function loadCadUsdRate() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(CONFIG.FX_STORAGE_KEY)||'null');
+    if (cached && cached.rate && cached.fetchedAt && (Date.now()-cached.fetchedAt<CONFIG.FX_CACHE_TTL_MS)) {
+      STATE.cadUsd=cached.rate; STATE.fxSource=cached.source+' (cached)'; STATE.fxDate=cached.date; return;
+    }
+  } catch(e){}
+  for (const url of CONFIG.FX_ENDPOINTS) {
+    try {
+      const res = await fetch(url, { cache:'no-store' });
+      if (!res.ok) continue;
+      const data = await res.json();
+      let rate=NaN, date=null, src=url;
+      if (data && data.rates && typeof data.rates.USD==='number') {
+        rate = data.rates.USD;
+        date = data.date || (data.time_last_update_utc||'').slice(0,16);
+        src = url.includes('frankfurter')?'Frankfurter':(url.includes('er-api')?'ER-API':'ExchangeRate-API');
+      }
+      if (!isNaN(rate) && rate>0.5 && rate<1) {
+        STATE.cadUsd=rate; STATE.fxSource=src; STATE.fxDate=date;
+        try { localStorage.setItem(CONFIG.FX_STORAGE_KEY, JSON.stringify({ rate, source:src, date, fetchedAt:Date.now() })); } catch(e){}
+        return;
+      }
+    } catch(e) {}
+  }
+  STATE.fxSource='fallback (live rate unavailable)';
+}
+
+/* Presets */
+function presetRange(p) {
+  const today=todayET();
+  switch (p) {
+    case 'today': return { start:today, end:today };
+    case 'yesterday': { const y=addDays(today,-1); return { start:y, end:y }; }
+    case 'last7': return { start:addDays(today,-6), end:today };
+    case 'last30': return { start:addDays(today,-29), end:today };
+    case 'mtd': return { start:new Date(today.getFullYear(),today.getMonth(),1), end:today };
+    case 'lastmonth': {
+      const f=new Date(today.getFullYear(),today.getMonth()-1,1);
+      const l=new Date(today.getFullYear(),today.getMonth(),0);
+      return { start:f, end:l };
+    }
+    case 'custom':
+      if (STATE.customStart&&STATE.customEnd) return { start:STATE.customStart, end:STATE.customEnd };
+      return { start:new Date(today.getFullYear(),today.getMonth(),1), end:today };
+  }
+}
+function comparisonRange(start, end, preset) {
+  if (preset==='mtd') {
+    const today=todayET();
+    const dom=today.getDate();
+    const pms=new Date(today.getFullYear(),today.getMonth()-1,1);
+    const pmsp=new Date(today.getFullYear(),today.getMonth()-1,dom);
+    const pml=new Date(today.getFullYear(),today.getMonth(),0);
+    const pe=+pmsp>+pml?pml:pmsp;
+    return { start:pms, end:pe, label:pms.toLocaleString('en-US',{ month:'short', year:'numeric' }) };
+  }
+  const days=Math.round((end-start)/86400000)+1;
+  const pe=addDays(start,-1); const ps=addDays(pe,-(days-1));
+  return { start:ps, end:pe, label:'prev period' };
+}
+const PRESET_LABELS = { today:'Today', yesterday:'Yesterday', last7:'Last 7 days', last30:'Last 30 days', mtd:'Month-to-Date', lastmonth:'Last Month', custom:'Custom range' };
+
+/* Row norm */
+function normalizeRow(headers, row) {
+  // HARDCODED column positions per the exact CSV header layout:
+  //  0=Order name  1=Product title  2=Staff member name  3=Day
+  //  4=POS location name (Shopify display name — UNSTABLE, can be renamed)
+  //  5=Product type  6=Product variant SKU  7=Product variant title
+  //  8=Net sales  9=BP POS LOC (Brightpearl POS code — STABLE, this is what we use)
+  //
+  // Column J values look like "Dedham POS", "Boston POS", "Toronto State and Liberty".
+  // These get translated to canonical "Dedham, MA" form via POS_NAME_MAP below,
+  // so the tier lookup works.
+  if (!STATE.colMap) {
+    STATE.colMap = {
+      order: 0,
+      productTitle: 1,
+      staff: 2,
+      day: 3,
+      // index 4 (POS location name) intentionally skipped — Shopify display name, unstable
+      productType: 5,
+      sku: 6,
+      variantTitle: 7,
+      netSales: 8,
+      location: 9   // BP POS LOC — Brightpearl stable identifier
+    };
+    console.log('[S&L Scorecard] HARDCODED column mapping:', STATE.colMap);
+    console.log('[S&L Scorecard] CSV headers received:', headers);
+    console.log('[S&L Scorecard] Reading location from column J (index 9):', headers[9], '— stable BP POS LOC identifier');
+    console.log('[S&L Scorecard] Ignoring column E:', headers[4], '— Shopify display name, unstable');
+  }
+  const c=STATE.colMap;
+  const rawLocation = String(row[c.location]??'').trim();
+  return {
+    order: String(row[c.order]??'').trim(),
+    productTitle: String(row[c.productTitle]??'').trim(),
+    staff: String(row[c.staff]??'').trim(),
+    day: parseDateCell(row[c.day]),
+    productType: String(row[c.productType]??'').trim(),
+    sku: String(row[c.sku]??'').trim(),
+    variantTitle: String(row[c.variantTitle]??'').trim(),
+    netSales: parseNumber(row[c.netSales]),
+    location: canonicalShop(rawLocation),
+    locationRaw: rawLocation
+  };
+}
+function bucketOf(t) {
+  if (CONFIG.BUCKETS.blazer.has(t)) return 'blazer';
+  if (CONFIG.BUCKETS.pant.has(t)) return 'pant';
+  if (CONFIG.BUCKETS.shirt.has(t)) return 'shirt';
+  if (CONFIG.BUCKETS.accessory.has(t)) return 'accessory';
+  return null;
+}
+function cleanRows(rows) {
+  return rows.filter(r => {
+    if (!r.location || CONFIG.EXCLUDED_LOCATIONS.has(r.location)) return false;
+    if (CONFIG.EXCLUDED_PRODUCT_TYPES.has(r.productType)) return false;
+    if (!r.day) return false;
+    return true;
+  }).map(r => {
+    // Flag Canadian rows so we can apply the right FX rate later
+    // (historical 0.7345 vs live, depending on the date range being viewed)
+    if (CONFIG.CAD_SHOPS.has(r.location)) {
+      return { ...r, isCad: true };
+    }
+    return r;
+  });
+}
+function aggregateByInvoice(rows) {
+  const map=new Map();
+  for (const r of rows) {
+    if (!r.order||!r.location) continue;
+    const key=r.order+'||'+r.location;
+    let inv=map.get(key);
+    if (!inv) { inv={order:r.order,location:r.location,day:r.day,has_blazer:false,has_pant:false,has_shirt:false,has_accessory:false,net_sales_raw:0,isCad:!!r.isCad}; map.set(key,inv); }
+    const b=bucketOf(r.productType);
+    if (b==='blazer') inv.has_blazer=true;
+    if (b==='pant') inv.has_pant=true;
+    if (b==='shirt') inv.has_shirt=true;
+    if (b==='accessory') inv.has_accessory=true;
+    // Store raw amount — FX conversion applied at metric computation time
+    if (!isNaN(r.netSales)) inv.net_sales_raw+=r.netSales;
+  }
+  return [...map.values()];
+}
+// Returns the invoice's net_sales in USD, using the FX rate appropriate for the date range
+function invoiceUsd(inv, fxRate) {
+  return inv.isCad ? inv.net_sales_raw * fxRate : inv.net_sales_raw;
+}
+function metricsForInvoices(inv, fxRate) {
+  if (fxRate == null) fxRate = STATE.cadUsd;
+  const total=inv.length;
+  if (!total) return { suit_completion:NaN, shirt_to_suit:NaN, accessory_to_suit:NaN, aov:NaN, total_invoices:0, total_sales:0 };
+  const blazer=inv.filter(i=>i.has_blazer).length;
+  const sc=inv.filter(i=>i.has_blazer||i.has_pant).length;
+  const fs=inv.filter(i=>i.has_blazer&&i.has_pant).length;
+  const bws=inv.filter(i=>i.has_blazer&&i.has_shirt).length;
+  const bwa=inv.filter(i=>i.has_blazer&&i.has_accessory).length;
+  const ts=inv.reduce((a,i)=>a+invoiceUsd(i, fxRate),0);
+  return {
+    suit_completion: sc?(fs/sc)*100:NaN,
+    shirt_to_suit: blazer?(bws/blazer)*100:NaN,
+    accessory_to_suit: blazer?(bwa/blazer)*100:NaN,
+    aov: total?(ts/total):NaN,
+    total_invoices:total, total_sales:ts
+  };
+}
+function filterByDateAndShop(inv, shop, start, end) {
+  const s=+start, e=+end;
+  return inv.filter(i => (!shop || i.location===shop) && +i.day>=s && +i.day<=e);
+}
+function tierBestWithShop(inv, start, end, shopTier, tierMap, key, fxRate) {
+  const by=new Map();
+  for (const i of inv) {
+    if (+i.day<+start||+i.day>+end) continue;
+    if (!by.has(i.location)) by.set(i.location,[]);
+    by.get(i.location).push(i);
+  }
+  let bv=NaN, bs=null;
+  for (const [shop, invs] of by) {
+    if (tierMap[shop]!==shopTier) continue;
+    if (invs.length < CONFIG.MIN_INVOICES_FOR_TIER) continue; // ≥50 invoice rule
+    const m=metricsForInvoices(invs, fxRate)[key];
+    if (!isNaN(m) && (isNaN(bv) || m>bv)) { bv=m; bs=shop; }
+  }
+  return { best:bv, shop:bs };
+}
+function categoryBest(inv, start, end, key, fxRate) {
+  const by=new Map();
+  for (const i of inv) {
+    if (+i.day<+start||+i.day>+end) continue;
+    if (!by.has(i.location)) by.set(i.location,[]);
+    by.get(i.location).push(i);
+  }
+  let bv=NaN, bs=null;
+  for (const [shop, invs] of by) {
+    if (invs.length < CONFIG.MIN_INVOICES_FOR_TIER) continue; // ≥50 invoice rule
+    const m=metricsForInvoices(invs, fxRate)[key];
+    if (!isNaN(m) && (isNaN(bv) || m>bv)) { bv=m; bs=shop; }
+  }
+  return { best:bv, shop:bs };
+}
+function tierRanking(inv, start, end, shopTier, tierMap, fxRate) {
+  const by=new Map();
+  for (const i of inv) {
+    if (+i.day<+start||+i.day>+end) continue;
+    if (tierMap[i.location]!==shopTier) continue;
+    if (!by.has(i.location)) by.set(i.location,[]);
+    by.get(i.location).push(i);
+  }
+  // Apply ≥50 invoice filter to ranking too
+  const shops=[...by.keys()].filter(s => by.get(s).length >= CONFIG.MIN_INVOICES_FOR_TIER);
+  const tb = {
+    suit_completion: tierBestWithShop(inv,start,end,shopTier,tierMap,'suit_completion',fxRate).best,
+    shirt_to_suit: tierBestWithShop(inv,start,end,shopTier,tierMap,'shirt_to_suit',fxRate).best,
+    accessory_to_suit: tierBestWithShop(inv,start,end,shopTier,tierMap,'accessory_to_suit',fxRate).best,
+    aov: tierBestWithShop(inv,start,end,shopTier,tierMap,'aov',fxRate).best
+  };
+  const rows = shops.map(s => {
+    const sm = metricsForInvoices(by.get(s), fxRate);
+    return { shop:s, score: computeTotalScore(sm, tb), metrics:sm };
+  });
+  const tot = Object.keys(tierMap).filter(s => tierMap[s]===shopTier).length;
+  rows.sort((a,b) => b.score - a.score);
+  return { rows, total: tot || rows.length, tierBests: tb };
+}
+function computeTotalScore(m, b) {
+  const g = (v, bv) => (isNaN(v)||isNaN(bv)||bv<=0) ? 0 : Math.min((v/bv)*100, 100);
+  return g(m.suit_completion, b.suit_completion) * CONFIG.WEIGHTS.suit_completion
+       + g(m.shirt_to_suit, b.shirt_to_suit) * CONFIG.WEIGHTS.shirt_to_suit
+       + g(m.accessory_to_suit, b.accessory_to_suit) * CONFIG.WEIGHTS.accessory_to_suit
+       + g(m.aov, b.aov) * CONFIG.WEIGHTS.aov;
+}
+
+/* Compute tier assignments from actual invoice data, following the canonical
+   rule: rank shops by net sales in the period, split into tiers of 9/10/8/9/8.
+   Shops with < MIN_INVOICES_FOR_TIER invoices are excluded.
+   Returns { tierMap: {shop: tierNumber}, ranked: [...] }
+   If autoRecompute is false, returns the static FALLBACK_TIER_MAP. */
+function buildTierMap(invoices, start, end, fxRate) {
+  const TIER_SIZES = [9, 10, 8, 9, 8]; // canonical April split
+  const salesByShop = new Map();
+  const countByShop = new Map();
+  for (const i of invoices) {
+    if (+i.day < +start || +i.day > +end) continue;
+    salesByShop.set(i.location, (salesByShop.get(i.location)||0) + invoiceUsd(i, fxRate));
+    countByShop.set(i.location, (countByShop.get(i.location)||0) + 1);
+  }
+  // Filter to shops meeting min invoice threshold
+  const eligible = [...salesByShop.entries()]
+    .filter(([s,_]) => (countByShop.get(s)||0) >= CONFIG.MIN_INVOICES_FOR_TIER)
+    .sort((a,b) => b[1] - a[1]);
+  // Apply tier sizes
+  const tierMap = {};
+  const ranked = [];
+  let idx = 0;
+  for (let tier = 1; tier <= TIER_SIZES.length; tier++) {
+    const size = TIER_SIZES[tier-1];
+    for (let i = 0; i < size && idx < eligible.length; i++, idx++) {
+      const [shop, sales] = eligible[idx];
+      tierMap[shop] = tier;
+      ranked.push({ shop, tier, sales, invoices: countByShop.get(shop) });
+    }
+  }
+  return { tierMap, ranked };
+}
+
+/* ============ DAILY RENDER ============ */
+function deltaTextSimple(c, p, isMoney, label) {
+  if (isNaN(c)||isNaN(p)) return '';
+  const d=c-p;
+  if (Math.abs(d)<0.05) return `<div class="metric-delta"><span class="arrow">—</span>flat vs ${escapeHtml(label)}</div>`;
+  const arrow=d>0?'↑':'↓';
+  const cls=d>0?'up':'dn';
+  if (isMoney) return `<div class="metric-delta ${cls}"><span class="arrow">${arrow}</span>${d>0?'+':'−'}$${Math.abs(d).toFixed(0)} vs ${escapeHtml(label)}</div>`;
+  return `<div class="metric-delta ${cls}"><span class="arrow">${arrow}</span>${d>0?'+':'−'}${Math.abs(d).toFixed(0)}pp vs ${escapeHtml(label)}</div>`;
+}
+function focusBlock(sm, tb, tbWS) {
+  const items = [
+    {k:'suit_completion',label:'Suit Completion',unit:'pp',weight:25,advice:"Pair every blazer with a matching pant during the fitting."},
+    {k:'shirt_to_suit',label:'Shirt-to-Suit',unit:'pp',weight:25,advice:"Layer a dress shirt into every suit fitting."},
+    {k:'accessory_to_suit',label:'Accessory-to-Suit',unit:'pp',weight:15,advice:"Push accessories — pull a tie or pocket square when the suit comes out."},
+    {k:'aov',label:'AOV',unit:'$',weight:35,advice:"Push multi-piece bundles to lift basket size."}
+  ];
+  let w=null;
+  for (const it of items) {
+    const v=sm[it.k], bv=tb[it.k];
+    if (isNaN(v)||isNaN(bv)||bv<=0) continue;
+    const r=v/bv;
+    if (w===null || r<w.ratio) w={ ...it, ratio:r, value:v, best:bv };
+  }
+  if (!w || w.ratio>=0.95) return '';
+  const leader=tbWS[w.k]?.shop || 'tier leader';
+  const gap=w.unit==='$' ? `${Math.round(w.best-w.value)} dollars` : `${Math.round(w.best-w.value)} points`;
+  const you=w.unit==='$' ? `$${Math.round(w.value)}` : `${Math.round(w.value)}%`;
+  const lv =w.unit==='$' ? `$${Math.round(w.best)}` : `${Math.round(w.best)}%`;
+  const grade=Math.min((w.value/w.best)*100, 100);
+  const potential=(100-grade)*(w.weight/100);
+  const gainText=potential>=0.5 ? `Closing this gap is worth ~${potential.toFixed(0)} points of Total Score.` : '';
+  return `<div class="focus-card">
+    <div class="focus-icon">★</div>
+    <div class="focus-body">
+      <div class="focus-label">Focus area</div>
+      <div class="focus-headline">${escapeHtml(w.label)} — biggest gap</div>
+      <div class="focus-action">You're at <strong>${you}</strong>; ${escapeHtml(leader)} leads the tier at <strong>${lv}</strong> (${gap} gap). ${escapeHtml(w.advice)} ${gainText}</div>
+    </div>
+  </div>`;
+}
+function updateRateNote(effective) {
+  // If a specific rate is being applied to the current view, show that.
+  // Otherwise show what's loaded.
+  if (effective != null && Math.abs(effective - CONFIG.HISTORICAL_CAD_USD) < 0.0001) {
+    const txt = `CAD→USD: ${effective.toFixed(4)} (historical lock, Bank of Canada May 4, 2026)`;
+    if ($('#rateNote')) $('#rateNote').textContent = txt;
+    if ($('#rateNoteMonthly')) $('#rateNoteMonthly').textContent = txt;
+    return;
+  }
+  const dateBit = STATE.fxDate ? ` · ${escapeHtml(STATE.fxDate)}` : '';
+  const rate = effective != null ? effective : STATE.cadUsd;
+  const txt = `CAD→USD: ${rate.toFixed(4)} (${STATE.fxSource}${dateBit})`;
+  if ($('#rateNote')) $('#rateNote').textContent = txt;
+  if ($('#rateNoteMonthly')) $('#rateNoteMonthly').textContent = txt;
+}
+
+function renderDaily() {
+  const { start, end } = presetRange(STATE.preset);
+  const shop = STATE.currentShop;
+  // Pick FX rate based on the date range (historical = 0.7345, current = live)
+  const fxRate = effectiveFxRate(end);
+  // Use the BAKED-IN tier map for now (matches canonical April).
+  // For automatic re-tiering by month, replace `tierMap` with `buildTierMap(STATE.invoices, ms, me, fxRate).tierMap`
+  // where ms/me are the month boundaries.
+  const tierMap = STATE.tierMap;
+  const tier = tierMap[shop];
+
+  $('#bannerShop').textContent = shop || '—';
+  if (tier) { $('#bannerTier').style.display='inline-block'; $('#bannerTier').textContent = 'Tier ' + tier; }
+  else $('#bannerTier').style.display='none';
+  $('#headerAvatar').textContent = shop ? shop.split(',')[0].slice(0,2).toUpperCase() : '—';
+
+  $('#pillPreset').textContent = PRESET_LABELS[STATE.preset];
+  $('#pillRange').textContent = fmtDateRange(start, end);
+  $('#pillCompare').textContent = STATE.compare==='on' ? 'Compare' : 'No compare';
+  updateRateNote(fxRate);
+
+  if (!shop) {
+    $('#bodyHost').innerHTML = `<div class="state"><div class="big">No store selected</div><div class="small">Pick a store to load the scorecard.</div></div>`;
+    return;
+  }
+
+  let periodHtml = '';
+  if (STATE.preset==='mtd') {
+    const t=todayET();
+    const dom=t.getDate();
+    const dim=new Date(t.getFullYear(), t.getMonth()+1, 0).getDate();
+    const pct=Math.round((dom/dim)*100);
+    periodHtml = `<div class="period-card">
+      <div class="period-line"><span><strong>Day ${dom} of ${dim}</strong> · ${pct}% through the month</span></div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  } else if (STATE.preset==='lastmonth') {
+    const t=todayET();
+    const lm=new Date(t.getFullYear(), t.getMonth()-1, 1).toLocaleString('en-US',{ month:'long', year:'numeric' });
+    periodHtml = `<div class="period-card">
+      <div class="period-line"><span><strong>${escapeHtml(lm)}</strong> · final results</span></div>
+      <div class="progress-track"><div class="progress-fill" style="width:100%"></div></div>
+    </div>`;
+  }
+
+  if (!tier) {
+    $('#bodyHost').innerHTML = periodHtml + `<div class="state"><div class="big">No tier assigned</div><div class="small">${escapeHtml(shop)} isn't mapped to a tier.</div></div>`;
+    return;
+  }
+
+  const inv = STATE.invoices || [];
+  const shopInvs = filterByDateAndShop(inv, shop, start, end);
+  const sm = metricsForInvoices(shopInvs, fxRate);
+  const tbWS = {
+    suit_completion: tierBestWithShop(inv,start,end,tier,tierMap,'suit_completion',fxRate),
+    shirt_to_suit: tierBestWithShop(inv,start,end,tier,tierMap,'shirt_to_suit',fxRate),
+    accessory_to_suit: tierBestWithShop(inv,start,end,tier,tierMap,'accessory_to_suit',fxRate),
+    aov: tierBestWithShop(inv,start,end,tier,tierMap,'aov',fxRate)
+  };
+  const tb = { suit_completion:tbWS.suit_completion.best, shirt_to_suit:tbWS.shirt_to_suit.best, accessory_to_suit:tbWS.accessory_to_suit.best, aov:tbWS.aov.best };
+
+  let prev=null, prevLabel='prev period';
+  if (STATE.compare==='on') {
+    const pr=comparisonRange(start, end, STATE.preset);
+    prevLabel=pr.label;
+    const prevFx = effectiveFxRate(pr.end);
+    prev=metricsForInvoices(filterByDateAndShop(inv, shop, pr.start, pr.end), prevFx);
+  }
+
+  if (!shopInvs.length) {
+    if (!STATE.dataLoaded) {
+      $('#bodyHost').innerHTML = periodHtml + `
+        <div class="state" style="padding: 60px 24px">
+          <div class="big">Loading your scorecard…</div>
+          <div class="small">Crunching ${escapeHtml(shop)}'s numbers</div>
+        </div>`;
+    } else {
+      $('#bodyHost').innerHTML = periodHtml + `<div class="state"><div class="big">No invoices yet</div><div class="small">${escapeHtml(shop)} has nothing for ${escapeHtml(fmtDateRange(start, end))}.</div></div>`;
+    }
+    return;
+  }
+
+  const ranking = tierRanking(inv, start, end, tier, tierMap, fxRate);
+  const myIdx = ranking.rows.findIndex(r => r.shop===shop);
+  const myRank = myIdx>=0 ? myIdx+1 : null;
+  const leader = ranking.rows[0];
+  const total = computeTotalScore(sm, tb);
+
+  const cards = [
+    { k:'suit_completion', label:'Suit Completion', weight:'25%', value:fmtPct(sm.suit_completion), best:fmtPct(tb.suit_completion), bestShop:tbWS.suit_completion.shop, isMoney:false },
+    { k:'shirt_to_suit', label:'Shirt-to-Suit', weight:'25%', value:fmtPct(sm.shirt_to_suit), best:fmtPct(tb.shirt_to_suit), bestShop:tbWS.shirt_to_suit.shop, isMoney:false },
+    { k:'accessory_to_suit', label:'Accessory-to-Suit', weight:'15%', value:fmtPct(sm.accessory_to_suit), best:fmtPct(tb.accessory_to_suit), bestShop:tbWS.accessory_to_suit.shop, isMoney:false },
+    { k:'aov', label:'AOV', weight:'35%', value:fmtMoney(sm.aov), best:fmtMoney(tb.aov), bestShop:tbWS.aov.shop, isMoney:true }
+  ];
+  const metricsHtml = `<div class="metric-stack">${cards.map(c => `
+    <div class="metric-card">
+      <div class="metric-head">
+        <div class="metric-name">${escapeHtml(c.label)}</div>
+        <div class="metric-weight">${c.weight}</div>
+      </div>
+      <div class="metric-value">${c.value}</div>
+      ${prev ? deltaTextSimple(sm[c.k], prev[c.k], c.isMoney, prevLabel) : ''}
+      <div class="metric-best">
+        <span class="lbl">Tier best</span>
+        <span class="val">${c.best}</span>
+        ${c.bestShop ? `<span class="shop">${escapeHtml(c.bestShop)}</span>` : ''}
+      </div>
+    </div>`).join('')}</div>`;
+
+  let totalDelta='';
+  if (prev) {
+    const pt = computeTotalScore(prev, tb);
+    if (!isNaN(pt) && Math.abs(total-pt)>=0.5) {
+      const d = total-pt;
+      totalDelta = `<div class="total-delta">${d>0?'↑':'↓'} ${d>0?'+':'−'}${Math.abs(d).toFixed(0)} vs ${escapeHtml(prevLabel)}</div>`;
+    } else if (!isNaN(pt)) {
+      totalDelta = `<div class="total-delta">— flat vs ${escapeHtml(prevLabel)}</div>`;
+    }
+  }
+  const rankLine = (myRank && leader && leader.shop!==shop)
+    ? `<div class="total-rank"><strong>Rank:</strong> #${myRank} of ${ranking.total}</div>`
+    : (myRank===1 ? `<div class="total-rank"><strong>Rank:</strong> #1 of ${ranking.total} ★</div>` : '');
+  const leaderLine = (myRank && leader && leader.shop!==shop)
+    ? `<div class="total-leader">${escapeHtml(leader.shop)} leads at ${Math.round(leader.score)}%</div>`
+    : (myRank===1 ? `<div class="total-leader">You're leading the tier</div>` : '');
+  const totalHtml = `<div class="total-card">
+    <div class="total-row1">
+      <div class="total-label">Total Score</div>
+      ${rankLine}
+    </div>
+    <div class="total-value">${fmtPct(total)}</div>
+    ${totalDelta}
+    <div class="total-goal">Goal: 100%</div>
+    ${leaderLine}
+  </div>`;
+
+  $('#bodyHost').innerHTML = periodHtml + metricsHtml + totalHtml + focusBlock(sm, tb, tbWS);
+}
+
+/* ============ MONTHLY RENDER ============ */
+function getAvailableMonths() {
+  const set = new Set();
+  for (const i of STATE.invoices) {
+    if (!i.day) continue;
+    set.add(`${i.day.getFullYear()}-${String(i.day.getMonth()+1).padStart(2,'0')}`);
+  }
+  return [...set].sort().reverse();
+}
+function monthRange(yyyymm) {
+  const [y,m] = yyyymm.split('-').map(Number);
+  return { start:new Date(y,m-1,1), end:new Date(y,m,0) };
+}
+function monthLabel(yyyymm) {
+  const [y,m] = yyyymm.split('-').map(Number);
+  return new Date(y,m-1,1).toLocaleString('en-US',{ month:'long', year:'numeric' });
+}
+function renderMonthlyMonthPicker(months) {
+  $('#ddMonth').innerHTML = months.map(m =>
+    `<div class="dd-item ${m===STATE.monthlyMonth?'active':''}" data-month="${m}">${escapeHtml(monthLabel(m))}</div>`
+  ).join('') || `<div class="sheet-empty">No months in data</div>`;
+}
+
+function renderMonthly() {
+  const months = getAvailableMonths();
+  $('#headerAvatar').textContent = STATE.currentShop ? STATE.currentShop.split(',')[0].slice(0,2).toUpperCase() : '—';
+
+  if (!months.length) {
+    if (!STATE.dataLoaded) {
+      $('#monthlyLeadersHost').innerHTML = `<div class="state" style="padding: 60px 24px"><div class="big">Loading…</div><div class="small">Fetching monthly data</div></div>`;
+    } else {
+      $('#monthlyLeadersHost').innerHTML = `<div class="state"><div class="big">No data</div><div class="small">No invoices found in the sheet.</div></div>`;
+    }
+    $('#monthlyTablesHost').innerHTML = '';
+    return;
+  }
+  if (!STATE.monthlyMonth || !months.includes(STATE.monthlyMonth)) {
+    const t=todayET();
+    const lm = `${t.getFullYear()}-${String(t.getMonth()).padStart(2,'0')}`;
+    STATE.monthlyMonth = months.includes(lm) ? lm : months[0];
+  }
+  renderMonthlyMonthPicker(months);
+  const { start, end } = monthRange(STATE.monthlyMonth);
+  $('#pillMonth').textContent = monthLabel(STATE.monthlyMonth);
+  $('#monthlySubtitle').textContent = `${monthLabel(STATE.monthlyMonth)} · 5 Tiers · #1 per tier wins $250`;
+
+  // Per-month FX rate (historical 0.7345 for past months, live for current)
+  const fxRate = effectiveFxRate(end);
+  // Compute the tier map FROM THIS MONTH'S DATA (auto-recalibrates monthly)
+  // Falls back to the baked-in FALLBACK_TIER_MAP if a shop isn't in the data yet
+  // (e.g., picker showing all 44 shops even before they've sold this month).
+  const computed = buildTierMap(STATE.invoices, start, end, fxRate);
+  const tierMap = Object.keys(computed.tierMap).length > 0 ? computed.tierMap : STATE.tierMap;
+
+  const inv = STATE.invoices;
+
+  // Category Leaders
+  const catKeys = [
+    { k:'suit_completion', label:'Suit Comp', isMoney:false },
+    { k:'shirt_to_suit', label:'Shirt-to-Suit', isMoney:false },
+    { k:'accessory_to_suit', label:'Acc-to-Suit', isMoney:false },
+    { k:'aov', label:'AOV', isMoney:true }
+  ];
+  const catCards = catKeys.map(c => {
+    const cb = categoryBest(inv, start, end, c.k, fxRate);
+    return `<div class="leader-card">
+      <div class="lc-metric">${escapeHtml(c.label)}</div>
+      <div class="lc-value">${c.isMoney ? fmtMoney(cb.best) : fmtPct(cb.best)}</div>
+      <div class="lc-shop">${cb.shop?escapeHtml(cb.shop):'—'}</div>
+    </div>`;
+  }).join('');
+
+  // Tier Leaders
+  const tierLeaderCards = [1,2,3,4,5].map(t => {
+    const rk = tierRanking(inv, start, end, t, tierMap, fxRate);
+    const top = rk.rows[0];
+    return `<div class="leader-card">
+      <div class="lc-metric">Tier ${t}</div>
+      <div class="lc-value">${top?fmtPct(top.score):'—'}</div>
+      <div class="lc-shop">${top?escapeHtml(top.shop):'—'}</div>
+    </div>`;
+  }).join('');
+
+  $('#monthlyLeadersHost').innerHTML = `
+    <div class="leaders-section">
+      <h2><span class="gold-star">★</span> ${escapeHtml(monthLabel(STATE.monthlyMonth))} Leaders</h2>
+      <div class="leaders-intro">Top performers across category and tier.</div>
+      <div class="leaders-subhead">Category Leaders <span class="leaders-subhead-note">— company-wide best on each metric</span></div>
+      <div class="leaders-grid leaders-grid-4">${catCards}</div>
+      <div class="leaders-subhead">Tier Leaders <span class="leaders-subhead-note">— top Total Score in each tier</span></div>
+      <div class="leaders-grid leaders-grid-5">${tierLeaderCards}</div>
+    </div>`;
+
+  // Tier sections (responsive: cards on mobile, table on desktop)
+  let html = '';
+  for (const t of [1,2,3,4,5]) {
+    const rk = tierRanking(inv, start, end, t, tierMap, fxRate);
+    const tb = rk.tierBests;
+    const salesByShop = new Map();
+    for (const i of inv) {
+      if (+i.day<+start||+i.day>+end) continue;
+      if (tierMap[i.location]!==t) continue;
+      salesByShop.set(i.location, (salesByShop.get(i.location)||0) + invoiceUsd(i, fxRate));
+    }
+    const tierShops = Object.keys(tierMap).filter(s => tierMap[s]===t);
+    const tierName = `${CONFIG.TIER_NAMES[t]} · ${tierShops.length} Shops`;
+    const tierBestsSummary = `Best: SC ${fmtPct(tb.suit_completion)} · STS ${fmtPct(tb.shirt_to_suit)} · ATS ${fmtPct(tb.accessory_to_suit)} · AOV ${fmtMoney(tb.aov)}`;
+
+    let cardsHtml = '';
+    let tableRowsHtml = '';
+    if (!rk.rows.length) {
+      cardsHtml = `<div class="state" style="padding:20px;margin:0"><div class="small">No data for this tier.</div></div>`;
+      tableRowsHtml = `<tr><td colspan="9" style="padding:18px;color:var(--muted);font-style:italic">No data for this tier.</td></tr>`;
+    } else {
+      cardsHtml = rk.rows.map((r, i) => {
+        const isWin = i===0;
+        const isYou = r.shop===STATE.currentShop;
+        const cls = (isWin?'winner ':'') + (isYou?'you':'');
+        return `<div class="shop-card ${cls.trim()}">
+          <div class="sc-head">
+            <div class="sc-rank">${isWin?'★ ':''}#${i+1}</div>
+            <div class="sc-name">${escapeHtml(r.shop)}</div>
+            ${isYou?'<div class="sc-you-tag">You</div>':''}
+          </div>
+          <div class="sc-row"><span class="k">Net Sales</span><span class="v">${fmtMoney(salesByShop.get(r.shop))}</span></div>
+          <div class="sc-row"><span class="k">Suit Completion</span><span class="v">${fmtPct(r.metrics.suit_completion)}</span></div>
+          <div class="sc-row"><span class="k">Shirt-to-Suit</span><span class="v">${fmtPct(r.metrics.shirt_to_suit)}</span></div>
+          <div class="sc-row"><span class="k">Accessory-to-Suit</span><span class="v">${fmtPct(r.metrics.accessory_to_suit)}</span></div>
+          <div class="sc-row"><span class="k">AOV</span><span class="v">${fmtMoney(r.metrics.aov)}</span></div>
+          <div class="sc-row total"><span class="k">Total Score</span><span class="v">${fmtPct(r.score)}</span></div>
+        </div>`;
+      }).join('');
+      tableRowsHtml = rk.rows.map((r, i) => {
+        const isWin = i===0;
+        const isYou = r.shop===STATE.currentShop;
+        const cls = (isWin?'winner-row ':'') + (isYou?'you-row':'');
+        return `<tr class="${cls.trim()}">
+          <td class="col-star">${isWin?'<span class="star">★</span>':''}</td>
+          <td class="col-rank">${i+1}</td>
+          <td class="col-shop">${escapeHtml(r.shop)}${isYou?' <span style="color:var(--gold);font-weight:800">(you)</span>':''}</td>
+          <td class="col-netsales">${fmtMoney(salesByShop.get(r.shop))}</td>
+          <td class="col-total">${fmtPct(r.score)}</td>
+          <td class="col-metric">${fmtPct(r.metrics.suit_completion)}</td>
+          <td class="col-metric">${fmtPct(r.metrics.shirt_to_suit)}</td>
+          <td class="col-metric">${fmtPct(r.metrics.accessory_to_suit)}</td>
+          <td class="col-metric">${fmtMoney(r.metrics.aov)}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    html += `<div class="tier-section">
+      <div class="tier-header">
+        <span>${escapeHtml(tierName)}</span>
+        <span class="tier-bests">${escapeHtml(tierBestsSummary)}</span>
+      </div>
+      <div class="tier-shop-list">${cardsHtml}</div>
+      <div class="tier-table-wrap"><table class="scorecard">
+        <thead><tr>
+          <th class="col-star"></th>
+          <th class="col-rank">Rank</th>
+          <th class="col-shop" style="text-align:left;padding-left:10px">Shop</th>
+          <th class="col-netsales">Net Sales</th>
+          <th class="col-total-header">TOTAL<span class="goal-tag">Goal 100%</span></th>
+          <th class="col-metric">Suit Comp<span class="best-tag">Best: ${fmtPct(tb.suit_completion)}</span></th>
+          <th class="col-metric">Shirt-to-Suit<span class="best-tag">Best: ${fmtPct(tb.shirt_to_suit)}</span></th>
+          <th class="col-metric">Acc-to-Suit<span class="best-tag">Best: ${fmtPct(tb.accessory_to_suit)}</span></th>
+          <th class="col-metric">AOV<span class="best-tag">Best: ${fmtMoney(tb.aov)}</span></th>
+        </tr></thead>
+        <tbody>${tableRowsHtml}</tbody>
+      </table></div>
+    </div>`;
+  }
+  $('#monthlyTablesHost').innerHTML = html;
+  updateRateNote(fxRate);
+}
+
+/* ============ TABS ============ */
+$$('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    STATE.view = t.dataset.view;
+    $$('.tab').forEach(x => x.classList.toggle('active', x.dataset.view===STATE.view));
+    $('#app').dataset.view = STATE.view;
+    if (STATE.view==='daily') {
+      $('#dailyPage').style.display = '';
+      $('#monthlyPage').style.display = 'none';
+      renderDaily();
+    } else {
+      $('#dailyPage').style.display = 'none';
+      $('#monthlyPage').style.display = '';
+      renderMonthly();
+    }
+  });
+});
+
+/* ============ SHOP PICKER ============ */
+function showPicker() {
+  $('#scrim').classList.add('open');
+  $('#sheet').classList.add('open');
+  $('#pickerSearch').value = '';
+  renderPickerList('');
+  setTimeout(() => $('#pickerSearch').focus(), 80);
+}
+function hidePicker() {
+  $('#scrim').classList.remove('open');
+  $('#sheet').classList.remove('open');
+}
+function renderPickerList(q) {
+  // Show ALL canonical stores from the tier map (44 stores).
+  // Also include any shop from the CSV that's in the tier map (so the picker stays
+  // consistent regardless of CSV load order). Raw/unmapped POS names are hidden
+  // to avoid the "wrong column" confusion.
+  const fromMap = Object.keys(STATE.tierMap||{});
+  const fromCsv = (STATE.shops||[]).filter(s => STATE.tierMap[s]); // only canonical
+  const all = [...new Set([...fromMap, ...fromCsv])].sort();
+  if (!all.length) { $('#pickerList').innerHTML = `<div class="sheet-empty">Loading store list…</div>`; return; }
+  const qq = (q||'').trim().toLowerCase();
+  const matches = qq ? all.filter(s => s.toLowerCase().includes(qq)) : all;
+  if (!matches.length) { $('#pickerList').innerHTML = `<div class="sheet-empty">No stores match "${escapeHtml(q)}"</div>`; return; }
+  $('#pickerList').innerHTML = matches.map(s => {
+    const t = STATE.tierMap[s];
+    return `<div class="sheet-item" data-shop="${escapeHtml(s)}">
+      <span class="shop-name">${escapeHtml(s)}</span>
+      ${t?`<span class="tier">Tier ${t}</span>`:''}
+    </div>`;
+  }).join('');
+}
+$('#pickerSearch').addEventListener('input', e => renderPickerList(e.target.value));
+$('#pickerList').addEventListener('click', e => {
+  const it = e.target.closest('.sheet-item[data-shop]');
+  if (!it) return;
+  selectShop(it.dataset.shop, true);
+});
+$('#pickerSearch').addEventListener('keydown', e => {
+  if (e.key==='Enter') {
+    const f = $('#pickerList .sheet-item[data-shop]');
+    if (f) selectShop(f.dataset.shop, true);
+  } else if (e.key==='Escape' && STATE.currentShop) hidePicker();
+});
+$('#scrim').addEventListener('click', () => { if (STATE.currentShop) hidePicker(); });
+$('#changeStore').addEventListener('click', showPicker);
+$('#changeStore2').addEventListener('click', showPicker);
+$('#headerAvatar').addEventListener('click', showPicker);
+
+function selectShop(shop, persist) {
+  STATE.currentShop = shop;
+  if (persist) {
+    try { localStorage.setItem(CONFIG.STORAGE_KEY, shop); } catch(e){}
+    const u = new URL(location.href);
+    u.searchParams.set('shop', shop);
+    history.replaceState(null, '', u.toString());
+  }
+  document.body.classList.remove('no-shop');
+  hidePicker();
+  // If CSV isn't loaded yet, show a friendly loading state until it arrives.
+  // loadData() will trigger the real render when data finishes parsing.
+  if (!STATE.dataLoaded) {
+    if ($('#bodyHost')) {
+      $('#bodyHost').innerHTML = `
+        <div class="state" style="padding: 80px 24px">
+          <div class="big">Loading your scorecard…</div>
+          <div class="small">Crunching ${escapeHtml(shop)}'s numbers</div>
+        </div>`;
+    }
+    return;
+  }
+  if (STATE.view==='daily') renderDaily(); else renderMonthly();
+}
+
+/* ============ DROPDOWNS ============ */
+function closeAllDropdowns() {
+  $$('.dd').forEach(d => d.classList.remove('open'));
+  $$('.cal-wrap').forEach(d => d.classList.remove('open'));
+}
+document.addEventListener('click', e => {
+  const pill = e.target.closest('.pill[data-dd]');
+  if (pill) {
+    const type = pill.dataset.dd;
+    const wrap = pill.parentElement;
+    const wasOpen = wrap.querySelector('.dd, .cal-wrap')?.classList.contains('open');
+    closeAllDropdowns();
+    if (!wasOpen) {
+      if (type==='cal') {
+        const { start, end } = presetRange(STATE.preset);
+        if (!STATE.customStart) STATE.customStart = start;
+        if (!STATE.customEnd) STATE.customEnd = end;
+        calBaseMonth = new Date(start.getFullYear(), start.getMonth(), 1);
+        wrap.querySelector('.cal-wrap').classList.add('open');
+        renderCalendar();
+      } else {
+        wrap.querySelector('.dd').classList.add('open');
+      }
+    }
+    e.stopPropagation();
+    return;
+  }
+  if (!e.target.closest('.dd-wrap') && !e.target.closest('.cal-wrap')) closeAllDropdowns();
+});
+$('#ddPreset').addEventListener('click', e => {
+  const it = e.target.closest('.dd-item');
+  if (!it) return;
+  $$('#ddPreset .dd-item').forEach(d => d.classList.remove('active'));
+  it.classList.add('active');
+  STATE.preset = it.dataset.preset;
+  if (STATE.preset==='custom') {
+    closeAllDropdowns();
+    const { start, end } = presetRange('mtd');
+    if (!STATE.customStart) STATE.customStart = start;
+    if (!STATE.customEnd) STATE.customEnd = end;
+    calBaseMonth = new Date(start.getFullYear(), start.getMonth(), 1);
+    $('#calWrap').classList.add('open');
+    renderCalendar();
+  } else {
+    closeAllDropdowns();
+    renderDaily();
+  }
+});
+$('#ddCompare').addEventListener('click', e => {
+  const it = e.target.closest('.dd-item');
+  if (!it) return;
+  $$('#ddCompare .dd-item').forEach(d => d.classList.remove('active'));
+  it.classList.add('active');
+  STATE.compare = it.dataset.compare;
+  closeAllDropdowns();
+  renderDaily();
+});
+$('#ddMonth').addEventListener('click', e => {
+  const it = e.target.closest('.dd-item[data-month]');
+  if (!it) return;
+  STATE.monthlyMonth = it.dataset.month;
+  closeAllDropdowns();
+  renderMonthly();
+});
+
+/* ============ CALENDAR ============ */
+let calBaseMonth = null;
+function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
+function endOfMonth(d) { return new Date(d.getFullYear(), d.getMonth()+1, 0); }
+function renderCalendar() {
+  const base = calBaseMonth || startOfMonth(addDays(todayET(),-30));
+  calBaseMonth = base;
+  const next = new Date(base.getFullYear(), base.getMonth()+1, 1);
+  $('#calHead1').textContent = base.toLocaleString('en-US',{ month:'long', year:'numeric' });
+  $('#calHead2').textContent = next.toLocaleString('en-US',{ month:'long', year:'numeric' });
+  $('#calDays1').innerHTML = monthHtml(base);
+  $('#calDays2').innerHTML = monthHtml(next);
+}
+function monthHtml(month) {
+  const first = startOfMonth(month), last = endOfMonth(month);
+  const out = [];
+  for (let i=0;i<first.getDay();i++) out.push(`<div class="cal-day muted"></div>`);
+  const ss=STATE.customStart, ee=STATE.customEnd;
+  for (let d=1; d<=last.getDate(); d++) {
+    const date = new Date(month.getFullYear(), month.getMonth(), d);
+    let cls = 'cal-day';
+    if (ss && +date===+ss) cls += ' endpoint';
+    else if (ee && +date===+ee) cls += ' endpoint';
+    else if (ss && ee && +date>+ss && +date<+ee) cls += ' in-range';
+    out.push(`<div class="${cls}" data-date="${ymd(date)}">${d}</div>`);
+  }
+  return out.join('');
+}
+$('#calPrev').addEventListener('click', e => { e.stopPropagation(); calBaseMonth = new Date(calBaseMonth.getFullYear(), calBaseMonth.getMonth()-1, 1); renderCalendar(); });
+$('#calNext').addEventListener('click', e => { e.stopPropagation(); calBaseMonth = new Date(calBaseMonth.getFullYear(), calBaseMonth.getMonth()+1, 1); renderCalendar(); });
+$('#calWrap').addEventListener('click', e => {
+  e.stopPropagation();
+  const cell = e.target.closest('.cal-day[data-date]');
+  if (!cell) return;
+  const d = new Date(cell.dataset.date+'T00:00:00');
+  if (!STATE.customStart || (STATE.customStart && STATE.customEnd)) {
+    STATE.customStart = d; STATE.customEnd = null;
+  } else if (+d < +STATE.customStart) {
+    STATE.customEnd = STATE.customStart; STATE.customStart = d;
+  } else {
+    STATE.customEnd = d;
+  }
+  renderCalendar();
+});
+$('#calCancel').addEventListener('click', e => { e.stopPropagation(); closeAllDropdowns(); });
+$('#calApply').addEventListener('click', e => {
+  e.stopPropagation();
+  if (STATE.customStart && !STATE.customEnd) STATE.customEnd = STATE.customStart;
+  if (STATE.customStart && STATE.customEnd) {
+    STATE.preset = 'custom';
+    $$('#ddPreset .dd-item').forEach(d => d.classList.remove('active'));
+    $('#ddPreset .dd-item[data-preset="custom"]').classList.add('active');
+  }
+  closeAllDropdowns();
+  renderDaily();
+});
+
+/* ============ FETCH ============ */
+async function loadData() {
+  try {
+    // Fire all 3 fetches in parallel — FX rate, CSV, Lookup all start simultaneously.
+    // This shaves 1-3 seconds off the wait because they don't queue behind each other.
+    const url = CONFIG.DATA_CSV_URL + (CONFIG.DATA_CSV_URL.includes('?')?'&':'?') + 't=' + Date.now();
+    const fxPromise = loadCadUsdRate();
+    const csvPromise = fetch(url, { cache:'no-store' }).then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    });
+    const lookupPromise = loadLookup();
+
+    // FX must finish before CSV is processed (rates affect Canadian conversion)
+    // CSV download can start immediately though.
+    const [_, text] = await Promise.all([fxPromise, csvPromise]);
+
+    const all = parseCSV(text);
+    if (!all.length) {
+      $('#bodyHost').innerHTML = `<div class="state"><div class="big">Data sheet is empty</div></div>`;
+      return;
+    }
+    STATE.colMap = null;
+    const headers = all[0];
+    const rows = all.slice(1).map(r => normalizeRow(headers, r));
+    const clean = cleanRows(rows);
+    STATE.invoices = aggregateByInvoice(clean);
+    STATE.shops = [...new Set(clean.map(r => r.location))].filter(Boolean).sort();
+    await lookupPromise; // lookup is small, almost always done by now
+    STATE.dataLoaded = true;
+    setRefreshedNow();
+    if (STATE.currentShop) {
+      if (STATE.view==='daily') renderDaily(); else renderMonthly();
+    }
+    if ($('#sheet').classList.contains('open')) renderPickerList('');
+  } catch (err) {
+    console.error(err);
+    $('#bodyHost').innerHTML = `<div class="state"><div class="big">Couldn't load data</div><div class="small">${escapeHtml(String(err.message || err))}</div></div>`;
+  }
+}
+async function loadLookup() {
+  if (!CONFIG.LOOKUP_CSV_URL) return;
+  try {
+    const url = CONFIG.LOOKUP_CSV_URL + (CONFIG.LOOKUP_CSV_URL.includes('?')?'&':'?') + 't=' + Date.now();
+    const res = await fetch(url, { cache:'no-store' });
+    if (!res.ok) throw new Error('Lookup HTTP ' + res.status);
+    const text = await res.text();
+    const rows = parseCSV(text);
+    if (!rows.length) return;
+    const headers = rows[0].map(h => String(h||'').trim().toLowerCase());
+    const shopIdx = headers.findIndex(h => /shop|location|store/.test(h));
+    const tierIdx = headers.findIndex(h => /tier/.test(h));
+    const overrides = {};
+    for (const r of rows.slice(1)) {
+      if (shopIdx>=0 && tierIdx>=0) {
+        const s = String(r[shopIdx]||'').trim();
+        const t = parseNumber(r[tierIdx]);
+        if (s && !isNaN(t)) overrides[s] = t;
+      }
+    }
+    if (Object.keys(overrides).length) STATE.tierMap = { ...FALLBACK_TIER_MAP, ...overrides };
+  } catch(e) {}
+}
+function setRefreshedNow() {
+  const fmt = new Intl.DateTimeFormat('en-US',{ timeZone:'America/New_York', hour:'numeric', minute:'2-digit', hour12:true });
+  $('#refreshedAt').textContent = fmt.format(new Date()) + ' ET';
+}
+
+function decideInitialShop() {
+  const all = new Set([...STATE.shops, ...Object.keys(STATE.tierMap)]);
+  const fromUrl = new URL(location.href).searchParams.get('shop');
+  if (fromUrl && all.has(fromUrl)) { selectShop(fromUrl, false); return; }
+  let saved = null;
+  try { saved = localStorage.getItem(CONFIG.STORAGE_KEY); } catch(e){}
+  // Only auto-load saved store if it's actually a valid canonical name in the current tier map.
+  // Old saved values from previous versions (e.g., "Boston POS") will be rejected, forcing the picker.
+  if (saved && STATE.tierMap[saved]) {
+    selectShop(saved, false);
+    return;
+  }
+  // Otherwise, always show the picker on load
+  if (saved) {
+    try { localStorage.removeItem(CONFIG.STORAGE_KEY); } catch(e){}
+  }
+  showPicker();
+}
+
+let refreshTimer = null;
+function scheduleNext() {
+  if (refreshTimer) { clearTimeout(refreshTimer); refreshTimer = null; }
+  if (!isInActiveWindow()) {
+    refreshTimer = setTimeout(() => { loadData().then(scheduleNext); }, msUntilNextActiveStart());
+    return;
+  }
+  refreshTimer = setTimeout(() => { loadData().then(scheduleNext); }, CONFIG.REFRESH_MS);
+}
+function msUntilNextActiveStart() {
+  const t = nowET();
+  const ns = t.hour*3600 + t.minute*60 + t.second;
+  const ss = CONFIG.ACTIVE_START_HOUR_ET * 3600;
+  return ((ns < ss ? (ss - ns) : ((24*3600) - ns + ss)) * 1000) + 1000;
+}
+
+(function init() {
+  const p = new URL(location.href).searchParams;
+  if (p.get('compare')==='off') {
+    STATE.compare='off';
+    $$('#ddCompare .dd-item').forEach(d => d.classList.toggle('active', d.dataset.compare==='off'));
+  }
+  const pp = p.get('preset');
+  if (pp && PRESET_LABELS[pp]) {
+    STATE.preset = pp;
+    $$('#ddPreset .dd-item').forEach(d => d.classList.toggle('active', d.dataset.preset===pp));
+  }
+  if (p.get('view')==='monthly') {
+    STATE.view = 'monthly';
+    $$('.tab').forEach(x => x.classList.toggle('active', x.dataset.view==='monthly'));
+    $('#app').dataset.view = 'monthly';
+    $('#dailyPage').style.display = 'none';
+    $('#monthlyPage').style.display = '';
+  }
+  // Body starts with `no-shop` class (set in HTML) so dashboard is hidden from page load.
+  // We only REMOVE the class when a valid saved/URL shop is confirmed.
+  const fromUrl = p.get('shop');
+  let saved = null;
+  try { saved = localStorage.getItem(CONFIG.STORAGE_KEY); } catch(e){}
+  const validSaved = saved && STATE.tierMap[saved];
+  const validFromUrl = fromUrl && STATE.tierMap[fromUrl];
+  if (validFromUrl) {
+    selectShop(fromUrl, false);  // selectShop removes no-shop class
+  } else if (validSaved) {
+    selectShop(saved, false);
+  } else {
+    if (saved && !STATE.tierMap[saved]) {
+      try { localStorage.removeItem(CONFIG.STORAGE_KEY); } catch(e){}
+    }
+    // Stay in login-screen mode — show picker on dark background
+    showPicker();
+  }
+  loadData().then(scheduleNext);
+})();
+</script>
+
+</body>
+</html>
